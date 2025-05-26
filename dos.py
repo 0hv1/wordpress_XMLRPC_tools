@@ -43,7 +43,7 @@ def get_args():
 	action   = sys.argv[1]
 	target   = sys.argv[2]
 	if action == "attack": 
-		if len(sys.argv) == 4: pingback = sys.argv[4]
+		if len(sys.argv) == 4: pingback = sys.argv[3]
 		else: pingback = "domains.txt"
 	else: 
 		if (action == "check" and len(sys.argv) != 4): usage_die() 
